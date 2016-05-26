@@ -34,9 +34,7 @@ To deploy the project, copy the ```aerospike-shiro-session-1.0.war``` file from 
 
 ### Usage
 
-To use the application, point your browser to 
-
-```http://localhost:8080/aerospike-shiro-session-1.0```
+To use the application, point your browser to ```http://localhost:8080/aerospike-shiro-session-1.0```
    
 Click on the ```Log in``` link and enter ```user``` for the username field and ```password``` for the pasword field on the log in form. You will be redirected to the ```accounts``` page. This page requies the user to be authenticated (see the ```[urls]``` section in the ```shiro.ini``` file).
 
@@ -44,4 +42,4 @@ Click on the ```Log in``` link and enter ```user``` for the username field and `
 
 The configuration provided in this example does not use a session cache on the Tomcat server. This allows any Tomcat instance to serve the request as all servers will read/update the session information in the Aerospike DB. This means you do not need to configure "sticky sessions" on the load balancer. 
 
-To test this out, configure another Tomcat server and deploy the ```aerospike-shiro-session-1.0.war``` to that server. Now you can point a browser window to each of the servers and try logging in/out from either Tomcat instance. Refreshing the other browser window will reflect the update as well.
+To test this out, configure another Tomcat server and deploy the ```aerospike-shiro-session-1.0.war``` to that server. Now you can point a browser window to each of the Tomcat servers and try logging in/out from either Tomcat instance. Refreshing the other browser window will reflect the update as well.
