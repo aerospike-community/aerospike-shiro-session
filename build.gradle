@@ -1,0 +1,38 @@
+
+apply plugin: 'java'
+apply plugin: 'war'
+
+// JDK version source compatibility
+sourceCompatibility = 1.8
+
+// project version
+version = '1.0'
+
+// War file name
+war.baseName = 'aerospike-shiro-session'
+
+// Web directory, this overrides the default value "webapp"
+project.webAppDirName = 'WebContent'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+// Set source directory
+sourceSets {
+        main {
+            java {
+                srcDir 'src'
+            }
+        }
+    }
+
+dependencies {
+	compile 'com.aerospike:aerospike-client:3.2.2'
+	compile 'org.apache.shiro:shiro-all:1.2.4'
+	compile 'org.slf4j:slf4j-simple:1.7.21'
+	compile 'commons-logging:commons-logging:1.2'
+	compile 'net.sf.ehcache:ehcache:2.10.2'
+	compile group: 'jstl', name: 'jstl', version: '1.2'
+}
