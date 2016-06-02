@@ -52,7 +52,8 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	private int globalSessionTimeout = 1800;
 
 	private AerospikeClient client;
-
+	private WritePolicy writePolicy;
+	
 	private static final transient Logger log = LoggerFactory.getLogger(AerospikeSessionDAO.class);
 	
 	public void setNamespace(String namespace) {
@@ -86,13 +87,15 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		log.info("Initializing the Aerospike Client");
 		ClientPolicy policy = new ClientPolicy();
 		policy.failIfNotConnected = true;
-		client = new AerospikeClient(policy, this.hostname, this.port);
+		this.client = new AerospikeClient(policy, this.hostname, this.port);
+		this.writePolicy = new WritePolicy();
+		this.writePolicy.expiration = this.globalSessionTimeout;
 	}
 	
 	@Override
 	public void destroy() throws Exception {
 		log.info("Destroying the Aerospike Client");
-		client.close();
+		this.client.close();
 	}
 	
 	@Override
@@ -109,16 +112,17 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	public void doDelete(Session session) {
 		log.info("Deleting session " + session.getId());
 		Key key = new Key(this.namespace, this.setname, (String)session.getId());
-		client.delete(null, key);
+		this.client.delete(null, key);
 	}
 
 	@Override
 	public Session doReadSession(Serializable sessionId) throws UnknownSessionException {
 		Session session = null;
 		Key key = new Key(this.namespace, this.setname, (String)sessionId);
-		Record rec = client.get(null, key);
+		Record rec = this.client.get(null, key);
 		if (rec != null) {
 			session = (Session)rec.getValue(this.binname);
+			this.client.touch(this.writePolicy, key);
 		} else {
 			throw new UnknownSessionException();
 		}
@@ -129,7 +133,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	@Override
 	public void doUpdate(Session session) throws UnknownSessionException {
 		Key key = new Key(this.namespace, this.setname, (String)session.getId());
-		Record rec = client.get(null, key);
+		Record rec = this.client.get(null, key);
 		if (rec != null) {
 			this.storeSession((String)session.getId(), session);
 		} else {
@@ -163,7 +167,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 				}
 			}
 
-			client.scanAll(policy, this.namespace, this.setname, 
+			this.client.scanAll(policy, this.namespace, this.setname, 
 					new SessionScanner(this.binname, sessions), this.binname);
 		} catch (AerospikeException e) {
 			e.printStackTrace();
@@ -175,8 +179,6 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	private void storeSession(String id, Session session) {
 		Key key = new Key(this.namespace, this.setname, id);
 		Bin bin = new Bin(this.binname, session);
-		WritePolicy writePolicy = new WritePolicy();
-		writePolicy.expiration = this.globalSessionTimeout;
-		client.put(writePolicy, key , bin);
+		this.client.put(this.writePolicy, key , bin);
 	}
 }
