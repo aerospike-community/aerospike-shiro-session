@@ -6,7 +6,7 @@ apply plugin: 'war'
 sourceCompatibility = 1.8
 
 // project version
-version = '1.0'
+version = '1.0.0'
 
 // War file name
 war.baseName = 'aerospike-shiro-session'
