@@ -52,7 +52,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	@SuppressWarnings("serial")
 	private static final Map<String, String> PROPERTY_MAP = Collections.unmodifiableMap(
 	    new HashMap<String, String>() {{
-	        put("AEROSPIKE_SESSION_NAMESPACE",		"setSession");
+	        put("AEROSPIKE_SESSION_NAMESPACE",		"setNamespace");
 	        put("AEROSPIKE_SESSION_SETNAME", 		"setSetname");
 	        put("AEROSPIKE_SESSION_BINNAME",		"setBinname");
 	        put("AEROSPIKE_SESSION_HOSTNAME",		"setHostname");
