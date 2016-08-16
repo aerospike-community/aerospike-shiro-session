@@ -48,6 +48,8 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	private String setname = "sessions";
 	private String binname = "data";
 	private String hostname = "localhost";
+	private String user = null;
+	private String password = null;
 	private int port = 3000;
 	private int globalSessionTimeout = 1800;
 
@@ -66,6 +68,14 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	
 	public void setBinname(String binname) {
 		this.binname = binname;
+	}
+	
+	public void setUser(String user) {
+		this.user = user;
+	}
+	
+	public void setPassword(String password) {
+		this.password = password;
 	}
 	
 	public void setGlobalSessionTimeout(long timeout) {
@@ -87,6 +97,8 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		log.info("Initializing the Aerospike Client");
 		ClientPolicy policy = new ClientPolicy();
 		policy.failIfNotConnected = true;
+		policy.user = this.user;
+		policy.password = this.password;
 		this.client = new AerospikeClient(policy, this.hostname, this.port);
 		this.writePolicy = new WritePolicy();
 		this.writePolicy.expiration = this.globalSessionTimeout;
