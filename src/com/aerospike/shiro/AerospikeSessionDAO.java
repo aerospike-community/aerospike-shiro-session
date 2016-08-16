@@ -17,8 +17,13 @@
 package com.aerospike.shiro;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,15 +48,30 @@ import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 
 public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyable, Initializable {
-	// Overwrite these default values using the shiro.ini file
-	private String namespace = "test";
-	private String setname = "sessions";
-	private String binname = "data";
-	private String hostname = "localhost";
-	private String user = null;
-	private String password = null;
-	private int port = 3000;
-	private int globalSessionTimeout = 1800;
+	// Read from these system properties at init time if they exist
+	@SuppressWarnings("serial")
+	private static final Map<String, String> PROPERTY_MAP = Collections.unmodifiableMap(
+	    new HashMap<String, String>() {{
+	        put("AEROSPIKE_SESSION_NAMESPACE",		"setSession");
+	        put("AEROSPIKE_SESSION_SETNAME", 		"setSetname");
+	        put("AEROSPIKE_SESSION_BINNAME",		"setBinname");
+	        put("AEROSPIKE_SESSION_HOSTNAME",		"setHostname");
+	        put("AEROSPIKE_SESSION_PORT",			"setPort");
+	        put("AEROSPIKE_SESSION_GLOBAL_TIMEOUT", "setGlobalSessionTimeout");
+	        put("AEROSPIKE_SESSION_USER",			"setUser");
+	        put("AEROSPIKE_SESSION_PASSWORD",		"setPassword");
+	    }}
+	);
+			
+	// Overwrite these default values using the shiro.ini file or via system properties
+	private String namespace			= "test";
+	private String setname				= "sessions";
+	private String binname				= "data";
+	private String hostname				= "localhost";
+	private String user					= null;
+	private String password				= null;
+	private int port					= 3000;
+	private int globalSessionTimeout	= 1800;
 
 	private AerospikeClient client;
 	private WritePolicy writePolicy;
@@ -92,9 +112,26 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		this.port = port;
 	}
 	
+	@SuppressWarnings("unused")
+	private void setPort(String port) {
+		this.setPort(Integer.valueOf(port));
+	}
+	
+	@SuppressWarnings("unused")
+	private void setGlobalSessionTimeout(String timeout) {
+		this.setGlobalSessionTimeout(Long.valueOf(timeout));
+	}
+	
 	@Override
 	public void init() throws ShiroException {
 		log.info("Initializing the Aerospike Client");
+		try {
+			this.readEnvironmentVariables();
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+				| SecurityException e) {		
+			log.error(e.getMessage());
+			throw new ShiroException(e.getMessage());
+		}
 		ClientPolicy policy = new ClientPolicy();
 		policy.failIfNotConnected = true;
 		policy.user = this.user;
@@ -182,7 +219,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 			this.client.scanAll(policy, this.namespace, this.setname, 
 					new SessionScanner(this.binname, sessions), this.binname);
 		} catch (AerospikeException e) {
-			e.printStackTrace();
+			log.error(e.getMessage());
 		}
 
 		return sessions;
@@ -192,5 +229,19 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		Key key = new Key(this.namespace, this.setname, id);
 		Bin bin = new Bin(this.binname, session);
 		this.client.put(this.writePolicy, key , bin);
+	}
+	
+	private void readEnvironmentVariables() throws IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException, SecurityException {
+		@SuppressWarnings("rawtypes")
+		Class[] paramString = new Class[1];
+		paramString[0] = String.class;
+		
+		for (String key : PROPERTY_MAP.keySet()) {
+			if (System.getProperty(key) != null) {
+				Method method = this.getClass().getDeclaredMethod(PROPERTY_MAP.get(key), paramString);
+				method.invoke(this, System.getProperty(key));
+			}
+		}
 	}
 }
