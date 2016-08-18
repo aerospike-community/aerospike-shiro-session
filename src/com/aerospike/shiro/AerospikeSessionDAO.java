@@ -33,12 +33,14 @@ import org.apache.shiro.session.UnknownSessionException;
 import org.apache.shiro.session.mgt.eis.CachingSessionDAO;
 import org.apache.shiro.util.Destroyable;
 import org.apache.shiro.util.Initializable;
+import org.apache.shiro.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
+import com.aerospike.client.Host;
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
 import com.aerospike.client.ScanCallback;
@@ -70,7 +72,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 	private String hostname				= "localhost";
 	private String user					= null;
 	private String password				= null;
-	private int port					= 3000;
+	private String port					= "3000";
 	private int globalSessionTimeout	= 1800;
 
 	private AerospikeClient client;
@@ -108,13 +110,8 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		this.hostname = hostname;
 	}
 	
-	public void setPort(int port) {
+	public void setPort(String port) {
 		this.port = port;
-	}
-	
-	@SuppressWarnings("unused")
-	private void setPort(String port) {
-		this.setPort(Integer.valueOf(port));
 	}
 	
 	@SuppressWarnings("unused")
@@ -136,7 +133,18 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		policy.failIfNotConnected = true;
 		policy.user = this.user;
 		policy.password = this.password;
-		this.client = new AerospikeClient(policy, this.hostname, this.port);
+
+		String[] hostnames = StringUtils.split(this.hostname);
+		String[] ports = StringUtils.split(this.port);
+		if (hostnames.length != ports.length) {
+			throw new ShiroException("Number of hosts in configuration does not match number of ports");
+		}
+		Host[] hosts = new Host[hostnames.length];
+		for (int i=0; i<hostnames.length; i++) {
+			hosts[i] = new Host(hostnames[i], Integer.valueOf(ports[i]));
+		}
+		this.client = new AerospikeClient(policy, hosts);
+
 		this.writePolicy = new WritePolicy();
 		this.writePolicy.expiration = this.globalSessionTimeout;
 	}
