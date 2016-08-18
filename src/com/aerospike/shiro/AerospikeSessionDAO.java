@@ -198,7 +198,7 @@ public class AerospikeSessionDAO extends CachingSessionDAO implements Destroyabl
 		try {
 			ScanPolicy policy = new ScanPolicy();
 			policy.concurrentNodes = true;
-			policy.priority = Priority.HIGH;
+			policy.priority = Priority.LOW;
 			policy.includeBinData = true;
 			
 			class SessionScanner implements ScanCallback {
